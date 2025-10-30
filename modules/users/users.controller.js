@@ -90,6 +90,28 @@ userRouter.delete('/delete/:userId', async (req, res)=>{
     }
 })
 
+userRouter.post('/login/', async(req, res)=>{
+        const {emailId, password} = req.body;
+    try{
+        const checkUser = await user.findOne({emailId})
+
+        if(!checkUser || checkUser.password !== password){
+            return res.status(401).json({
+                message: "Invalid email address or password"
+            })
+        
+            return res.status(200).json({
+                message: "Login Success",
+                user: checkUser
+            })
+        }
+    }catch(err){
+        return res.status(500).json({
+            message: "Unable to connect to server"
+        })
+    }
+})
+
 module.exports = userRouter;
 
 
