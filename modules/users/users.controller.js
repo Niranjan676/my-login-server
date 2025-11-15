@@ -2,16 +2,55 @@ const express = require('express')
 const userRouter = express.Router();
 const user = require('./users.model');
 const { Types } = require('mongoose');
+const multer = require('multer');
+const path = require('path')
 
 
-userRouter.post('/create', async (req, res)=>{
-    const newUser = new user(req.body)
+//Storage configuration
+
+const storage = multer.diskStorage({
+    destination: function (req, file, callback){
+        callback(null, 'uploads/')
+    },
+    filename: function (req, file, callback){
+        const filename = Date.now() + "-" + Math.round(Math.random() * 1E9);
+        callback(null, filename + path.extname(file.originalname))
+    }
+})
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype.startsWith('image')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  };
+
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter
+})
+
+
+userRouter.post('/create', upload.single('image'), async (req, res)=>{
+    const {name, email, password} = req.body
     try{
-        const response = await user.create(newUser)
-        console.log(response)
-        return res.status(200).json({
-            message: "user created successfully",
-            data: response
+
+        //Checking the email address is already registered
+        const existingemail = await user.findOne({email})
+        if(existingemail){
+            return res.status(400).json({
+                message: "Email address is already registered"
+            })
+        }
+        //Creating the new user
+        const newUser = new user({
+            name, email, password, image: req.file ? req.file.filename : null
+        })
+            const response = await newUser.save()
+            console.log(response)
+            return res.status(200).json({
+                message: "user created successfully",
+                data: response
         })
     }catch(error){
         return res.status(404).json({
@@ -110,8 +149,28 @@ userRouter.post('/login/', async(req, res)=>{
             message: "Unable to connect to server"
         })
     }
+
+userRouter.post('/login', async(req, res)=>{
+    const {email, password} = req.body
+
+    try{
+        const checkuser = await user.findOne({email})
+
+        if(!checkuser || checkuser.password !== password){
+            return res.status(400).json({
+                message: "Invali user email or password"
+            })
+        }
+        return res.status(200).json({
+            message: "Login successful",
+            data: checkuser
+        })
+    }catch(err){
+        return res.status(500).json({
+            message: "Unable to connect to the server",
+            err
+        })
+    }
 })
 
 module.exports = userRouter;
-
-

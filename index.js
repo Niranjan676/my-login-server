@@ -7,8 +7,12 @@ const cors = require('cors')
 //------middleware---------
 httpServer.use(cors());
 httpServer.use(bodyparser.json())
-
+httpServer.use('/uploads', express.static('uploads'));
 httpServer.use('/users', require('./modules/users/users.controller'))
+
+//------middleware---------
+
+
 
 
 httpServer.listen(3000, 'localhost', (err)=>{
